@@ -1,4 +1,4 @@
-use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Parser, Tag, TagEnd};
+use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, Parser, Tag, TagEnd};
 use std::fs;
 use warp::Filter;
 
@@ -9,7 +9,7 @@ fn markdown_to_confluence(input: &str) -> String {
     let mut list_stack: Vec<bool> = Vec::new(); // Stack to track list types (true for ordered, false for unordered)
 
     for event in parser {
-        let event = dbg!(event);
+        // let event = dbg!(event);
         match event {
             Event::Start(tag) => match tag {
                 Tag::Heading {
@@ -69,7 +69,12 @@ fn markdown_to_confluence(input: &str) -> String {
                     }
                 }
                 Tag::CodeBlock(CodeBlockKind::Fenced(lang)) => {
-                    output.push_str(&format!("\n{{code:{}}}\n", lang));
+                    let l = if lang.as_ref() == "plaintext" {
+                        CowStr::from("sh")
+                    } else {
+                        lang // Use the original CowStr
+                    };
+                    output.push_str(&format!("\n{{code:language={}}}\n", l));
                 }
                 Tag::CodeBlock(CodeBlockKind::Indented) => {
                     // Start a generic code block for indented code
@@ -91,6 +96,10 @@ fn markdown_to_confluence(input: &str) -> String {
                 }
                 TagEnd::Item => {
                     // Add a line break after each list item
+                }
+                TagEnd::CodeBlock => {
+                    // Write the Confluence code block end marker
+                    output.push_str("{code}");
                 }
                 _ => {}
             },
