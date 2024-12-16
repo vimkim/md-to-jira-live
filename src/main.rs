@@ -5,6 +5,7 @@ use warp::Filter;
 fn markdown_to_confluence(input: &str) -> String {
     let parser = Parser::new(input);
     let mut output = String::new();
+    let mut is_list_item = false;
 
     for event in parser {
         match event {
@@ -19,11 +20,20 @@ fn markdown_to_confluence(input: &str) -> String {
                         HeadingLevel::H5 => "h5.",
                         HeadingLevel::H6 => "h6.",
                     };
-                    output.push_str(&format!("{} ", heading_level));
+                    output.push_str(&format!("{}\n", heading_level));
                 }
                 Tag::Emphasis => output.push('_'),
                 Tag::Strong => output.push('*'),
-                Tag::Link(_, href, _) => output.push_str(&format!("[{}", href)),
+                Tag::Link(_, href, _) => {
+                    output.push_str(&format!("[{}", href));
+                }
+                Tag::Item => {
+                    // Start a new list item
+                    if !is_list_item {
+                        is_list_item = true;
+                    }
+                    output.push_str("- ");
+                }
                 _ => {}
             },
             Event::End(tag) => match tag {
@@ -33,15 +43,32 @@ fn markdown_to_confluence(input: &str) -> String {
                 Tag::Link(_, _, title) => {
                     output.push(']');
                     if !title.is_empty() {
-                        output.push_str(&format!(" ({})", title));
+                        output.push_str(&format!(" {}", title));
                     }
+                }
+                Tag::Item => {
+                    // Add a line break after each list item
+                    output.push('\n');
+                    is_list_item = false;
                 }
                 _ => {}
             },
-            Event::Text(text) => output.push_str(&text),
-            Event::SoftBreak | Event::HardBreak => output.push('\n'),
-            Event::Code(text) => output.push_str(&format!("`{}`", text)),
-            Event::Html(html) => output.push_str(&format!("{{html}}{}{{html}}", html)),
+            Event::Text(text) => {
+                // Add text content
+                output.push_str(&text);
+            }
+            Event::SoftBreak | Event::HardBreak => {
+                // Add a line break
+                output.push('\n');
+            }
+            Event::Code(text) => {
+                // Inline code
+                output.push_str(&format!("`{}`", text));
+            }
+            Event::Html(html) => {
+                // Add raw HTML content
+                output.push_str(&format!("{{html}}{}{{html}}", html));
+            }
             _ => {}
         }
     }
