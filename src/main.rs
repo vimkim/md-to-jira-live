@@ -175,7 +175,7 @@ async fn main() {
                 font-size: 24px;
             }}
             .container {{
-                max-width: 1200px;
+                max-width: 1500px;
                 margin: 0 auto;
                 display: flex;
                 flex-direction: column;
@@ -202,7 +202,7 @@ async fn main() {
             }}
             textarea {{
                 width: 100%;
-                height: 100%;
+                height: 96%;
                 border: none;
                 font-family: "Courier New", Courier, monospace;
                 font-size: 14px;
