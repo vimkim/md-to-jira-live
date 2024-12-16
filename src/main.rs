@@ -135,171 +135,31 @@ fn markdown_to_html(markdown: &str) -> String {
 
 #[tokio::main]
 async fn main() {
-    // Define a warp route to serve the converted content
+    use std::fs;
+    use warp::Filter;
+
     let markdown_route = warp::path::end().and(warp::get()).map(|| {
-        // Read `main.md`
-        let markdown_content = std::fs::read_to_string("main.md").unwrap_or_else(|_| {
+        // Read Markdown and HTML
+        let markdown_content = fs::read_to_string("main.md").unwrap_or_else(|_| {
             "# Error\nCould not read `main.md`. Make sure the file exists.".to_string()
         });
-
-        // Convert Markdown to Confluence Wiki format
+        let rendered_html = markdown_to_html(&markdown_content);
         let confluence_content = markdown_to_confluence(&markdown_content);
-        let html_content = markdown_to_html(&markdown_content);
 
-        // Serve the result in an HTML textarea and side-by-side layout
-        warp::reply::html(format!(
-            r#"
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Markdown to CUBRID Jira Confluence Wiki Style</title>
-        <style>
-            * {{
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }}
-            body {{
-                font-family: Arial, sans-serif;
-                line-height: 1.6;
-                background-color: #f8f9fa;
-                color: #333;
-                padding: 20px;
-            }}
-            h1 {{
-                text-align: center;
-                color: #343a40;
-                margin-bottom: 20px;
-                font-size: 24px;
-            }}
-            .container {{
-                max-width: 1500px;
-                margin: 0 auto;
-                display: flex;
-                flex-direction: column;
-                gap: 20px;
-            }}
-            .content {{
-                display: flex;
-                gap: 20px;
-                flex-wrap: wrap;
-            }}
-            .rendered-html, .wiki-content {{
-                flex: 1;
-                min-width: 48%; /* Ensure proper wrapping for smaller screens */
-                height: 70vh;
-                padding: 15px;
-                background-color: #fff;
-                border: 1px solid #ced4da;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                overflow: auto;
-            }}
-            .rendered-html {{
-                font-size: 14px;
-            }}
-            textarea {{
-                width: 100%;
-                height: 96%;
-                border: none;
-                font-family: "Courier New", Courier, monospace;
-                font-size: 14px;
-                resize: none;
-                background-color: #fff;
-                color: #495057;
-                box-shadow: none;
-            }}
-            textarea:focus {{
-                outline: none;
-            }}
-            button {{
-                align-self: flex-end;
-                padding: 10px 20px;
-                font-size: 16px;
-                font-weight: bold;
-                color: #fff;
-                background-color: #007bff;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                transition: background-color 0.3s ease;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            }}
-            button:hover {{
-                background-color: #0056b3;
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>Markdown to Confluence Wiki Style</h1>
-            <div class="content">
-                <!-- Rendered HTML -->
-                <div class="rendered-html">
-                    {html_content}
-                </div>
-                <!-- Confluence Wiki -->
-                <div class="wiki-content">
-                    <textarea id="confluence-content" readonly>{confluence_content}</textarea>
-                </div>
-            </div>
-            <button id="copy-button">Copy Confluence Wiki</button>
-        </div>
-        <script>
-            document.getElementById('copy-button').addEventListener('click', function () {{
-                const textarea = document.getElementById('confluence-content');
-                textarea.select();
-                textarea.setSelectionRange(0, textarea.value.length); // Ensure selection for mobile devices
+        // Read the external HTML file
+        let mut html_template = fs::read_to_string("index.html")
+            .unwrap_or_else(|_| "Error: Could not read index.html".to_string());
 
-                try {{
-                    if (document.execCommand('copy')) {{
-                        // Show a non-intrusive notification
-                        const notification = document.createElement('div');
-                        notification.textContent = 'Copied to clipboard!';
-                        notification.style.position = 'fixed';
-                        notification.style.bottom = '20px';
-                        notification.style.right = '20px';
-                        notification.style.backgroundColor = '#007bff';
-                        notification.style.color = '#fff';
-                        notification.style.padding = '10px 15px';
-                        notification.style.borderRadius = '5px';
-                        notification.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
-                        notification.style.fontSize = '14px';
-                        notification.style.zIndex = '1000';
-                        document.body.appendChild(notification);
+        // Replace placeholders with dynamic content
+        html_template = html_template
+            .replace("{{ rendered_html }}", &rendered_html)
+            .replace("{{ confluence_content }}", &confluence_content);
 
-                        // Fade out the notification
-                        setTimeout(() => {{
-                            notification.style.transition = 'opacity 0.5s';
-                            notification.style.opacity = '0';
-                            setTimeout(() => {{
-                                notification.remove();
-                            }}, 500); // Allow fade-out to complete
-                        }}, 500);
-                    }}
-                }} catch (err) {{
-                    console.error('Copy to clipboard failed', err);
-                }}
-
-                // Deselect the text
-                textarea.setSelectionRange(0, 0);
-                textarea.blur();
-            }});
-        </script>
-    </body>
-    </html>
-    "#,
-            html_content = html_content,
-            confluence_content = confluence_content
-        ))
+        warp::reply::html(html_template)
     });
 
     // Start the server
-    let port = 3030;
-    println!("Server running at http://localhost:{}/", port);
     warp::serve(markdown_route)
-        .run(([127, 0, 0, 1], port))
+        .run(([127, 0, 0, 1], 3030))
         .await;
 }
