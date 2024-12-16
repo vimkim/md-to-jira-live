@@ -1,4 +1,4 @@
-use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, Parser, Tag, TagEnd};
+use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, Parser, Tag, TagEnd, html};
 use std::fs;
 use warp::Filter;
 
@@ -126,19 +126,27 @@ fn markdown_to_confluence(input: &str) -> String {
     output
 }
 
+fn markdown_to_html(markdown: &str) -> String {
+    let parser = Parser::new(markdown);
+    let mut html_output = String::new();
+    html::push_html(&mut html_output, parser);
+    html_output
+}
+
 #[tokio::main]
 async fn main() {
     // Define a warp route to serve the converted content
     let markdown_route = warp::path::end().and(warp::get()).map(|| {
         // Read `main.md`
-        let markdown_content = fs::read_to_string("main.md").unwrap_or_else(|_| {
+        let markdown_content = std::fs::read_to_string("main.md").unwrap_or_else(|_| {
             "# Error\nCould not read `main.md`. Make sure the file exists.".to_string()
         });
 
         // Convert Markdown to Confluence Wiki format
         let confluence_content = markdown_to_confluence(&markdown_content);
+        let html_content = markdown_to_html(&markdown_content);
 
-        // Serve the result in an HTML textarea
+        // Serve the result in an HTML textarea and side-by-side layout
         warp::reply::html(format!(
             r#"
     <!DOCTYPE html>
@@ -167,31 +175,47 @@ async fn main() {
                 font-size: 24px;
             }}
             .container {{
-                max-width: 800px;
+                max-width: 1200px;
                 margin: 0 auto;
-                text-align: center;
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }}
+            .content {{
+                display: flex;
+                gap: 20px;
+                flex-wrap: wrap;
+            }}
+            .rendered-html, .wiki-content {{
+                flex: 1;
+                min-width: 48%; /* Ensure proper wrapping for smaller screens */
+                height: 70vh;
+                padding: 15px;
+                background-color: #fff;
+                border: 1px solid #ced4da;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                overflow: auto;
+            }}
+            .rendered-html {{
+                font-size: 14px;
             }}
             textarea {{
                 width: 100%;
-                height: 70vh;
-                border: 1px solid #ced4da;
-                border-radius: 8px;
-                padding: 15px;
+                height: 100%;
+                border: none;
                 font-family: "Courier New", Courier, monospace;
                 font-size: 14px;
+                resize: none;
                 background-color: #fff;
                 color: #495057;
-                resize: none;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                box-shadow: none;
             }}
             textarea:focus {{
                 outline: none;
-                border-color: #007bff;
-                box-shadow: 0 0 8px rgba(0, 123, 255, 0.25);
             }}
             button {{
-                display: inline-block;
-                margin-top: 20px;
+                align-self: flex-end;
                 padding: 10px 20px;
                 font-size: 16px;
                 font-weight: bold;
@@ -206,20 +230,22 @@ async fn main() {
             button:hover {{
                 background-color: #0056b3;
             }}
-            button:active {{
-                background-color: #004085;
-            }}
-            button:focus {{
-                outline: none;
-                box-shadow: 0 0 6px rgba(0, 123, 255, 0.5);
-            }}
         </style>
     </head>
     <body>
         <div class="container">
-            <h1>Markdown to CUBRID Jira Confluence Wiki Style</h1>
-            <textarea id="confluence-content" readonly>{}</textarea>
-            <button id="copy-button">Copy to Clipboard</button>
+            <h1>Markdown to Confluence Wiki Style</h1>
+            <div class="content">
+                <!-- Rendered HTML -->
+                <div class="rendered-html">
+                    {html_content}
+                </div>
+                <!-- Confluence Wiki -->
+                <div class="wiki-content">
+                    <textarea id="confluence-content" readonly>{confluence_content}</textarea>
+                </div>
+            </div>
+            <button id="copy-button">Copy Confluence Wiki</button>
         </div>
         <script>
             document.getElementById('copy-button').addEventListener('click', function () {{
@@ -265,7 +291,8 @@ async fn main() {
     </body>
     </html>
     "#,
-            confluence_content
+            html_content = html_content,
+            confluence_content = confluence_content
         ))
     });
 
