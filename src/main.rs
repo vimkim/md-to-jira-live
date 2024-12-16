@@ -9,6 +9,7 @@ fn markdown_to_confluence(input: &str) -> String {
     let mut list_stack: Vec<bool> = Vec::new(); // Stack to track list types (true for ordered, false for unordered)
 
     for event in parser {
+        let event = dbg!(event);
         match event {
             Event::Start(tag) => match tag {
                 Tag::Heading {
@@ -51,21 +52,19 @@ fn markdown_to_confluence(input: &str) -> String {
                     // Ordered list: push `true` to stack
                     list_stack.push(true);
                     list_depth += 1;
-                    output.push('\n');
                 }
                 Tag::List(None) => {
                     // Unordered list: push `false` to stack
                     list_stack.push(false);
                     list_depth += 1;
-                    output.push('\n');
                 }
                 Tag::Item => {
                     // Use the last value in the stack to determine list type
                     if let Some(&is_ordered_list) = list_stack.last() {
                         if is_ordered_list {
-                            output.push_str(&format!("{} ", "#".repeat(list_depth)));
+                            output.push_str(&format!("\n{} ", "#".repeat(list_depth)));
                         } else {
-                            output.push_str(&format!("{} ", "*".repeat(list_depth)));
+                            output.push_str(&format!("\n{} ", "*".repeat(list_depth)));
                         }
                     }
                 }
@@ -86,10 +85,12 @@ fn markdown_to_confluence(input: &str) -> String {
                     // Pop the stack to restore the previous list type
                     list_stack.pop();
                     list_depth -= 1;
+                    if list_depth == 0 {
+                        output.push('\n');
+                    }
                 }
                 TagEnd::Item => {
                     // Add a line break after each list item
-                    output.push('\n');
                 }
                 _ => {}
             },

@@ -46,6 +46,16 @@ CREATE TABLE 구문을 이용하여 VECTOR 타입 컬럼을 갖는 테이블 생
    - `show columns from vt;`
    - `desc vt`
 
+- arstarstarst
+- arstarstarst
+  - arstarst
+  - arstarst
+    1. arstarst
+    1. why, after this, new line?
+  - arstarst end
+    1. arstartsst why new lines?
+- arstarst
+
 ---
 
 # Definition of Done
