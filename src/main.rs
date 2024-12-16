@@ -139,7 +139,6 @@ async fn main() {
         let confluence_content = markdown_to_confluence(&markdown_content);
 
         // Serve the result in an HTML textarea
-        // Serve the result in an HTML textarea
         warp::reply::html(format!(
             r#"
     <!DOCTYPE html>
@@ -147,7 +146,7 @@ async fn main() {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Markdown to Confluence</title>
+        <title>Markdown to CUBRID Jira Confluence Wiki Style</title>
         <style>
             * {{
                 margin: 0;
@@ -157,25 +156,31 @@ async fn main() {
             body {{
                 font-family: Arial, sans-serif;
                 line-height: 1.6;
-                background-color: #f4f4f9;
+                background-color: #f8f9fa;
                 color: #333;
                 padding: 20px;
             }}
             h1 {{
                 text-align: center;
-                color: #444;
+                color: #343a40;
                 margin-bottom: 20px;
+                font-size: 24px;
+            }}
+            .container {{
+                max-width: 800px;
+                margin: 0 auto;
+                text-align: center;
             }}
             textarea {{
                 width: 100%;
-                height: 100vh;
-                border: 1px solid #ccc;
+                height: 70vh;
+                border: 1px solid #ced4da;
                 border-radius: 8px;
-                padding: 10px;
+                padding: 15px;
                 font-family: "Courier New", Courier, monospace;
                 font-size: 14px;
                 background-color: #fff;
-                color: #333;
+                color: #495057;
                 resize: none;
                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             }}
@@ -184,11 +189,79 @@ async fn main() {
                 border-color: #007bff;
                 box-shadow: 0 0 8px rgba(0, 123, 255, 0.25);
             }}
+            button {{
+                display: inline-block;
+                margin-top: 20px;
+                padding: 10px 20px;
+                font-size: 16px;
+                font-weight: bold;
+                color: #fff;
+                background-color: #007bff;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }}
+            button:hover {{
+                background-color: #0056b3;
+            }}
+            button:active {{
+                background-color: #004085;
+            }}
+            button:focus {{
+                outline: none;
+                box-shadow: 0 0 6px rgba(0, 123, 255, 0.5);
+            }}
         </style>
     </head>
     <body>
-        <h1>Markdown to CUBRID Jira Confluence Wiki Style</h1>
-        <textarea readonly>{}</textarea>
+        <div class="container">
+            <h1>Markdown to CUBRID Jira Confluence Wiki Style</h1>
+            <textarea id="confluence-content" readonly>{}</textarea>
+            <button id="copy-button">Copy to Clipboard</button>
+        </div>
+        <script>
+            document.getElementById('copy-button').addEventListener('click', function () {{
+                const textarea = document.getElementById('confluence-content');
+                textarea.select();
+                textarea.setSelectionRange(0, textarea.value.length); // Ensure selection for mobile devices
+
+                try {{
+                    if (document.execCommand('copy')) {{
+                        // Show a non-intrusive notification
+                        const notification = document.createElement('div');
+                        notification.textContent = 'Copied to clipboard!';
+                        notification.style.position = 'fixed';
+                        notification.style.bottom = '20px';
+                        notification.style.right = '20px';
+                        notification.style.backgroundColor = '#007bff';
+                        notification.style.color = '#fff';
+                        notification.style.padding = '10px 15px';
+                        notification.style.borderRadius = '5px';
+                        notification.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
+                        notification.style.fontSize = '14px';
+                        notification.style.zIndex = '1000';
+                        document.body.appendChild(notification);
+
+                        // Fade out the notification
+                        setTimeout(() => {{
+                            notification.style.transition = 'opacity 0.5s';
+                            notification.style.opacity = '0';
+                            setTimeout(() => {{
+                                notification.remove();
+                            }}, 500); // Allow fade-out to complete
+                        }}, 500);
+                    }}
+                }} catch (err) {{
+                    console.error('Copy to clipboard failed', err);
+                }}
+
+                // Deselect the text
+                textarea.setSelectionRange(0, 0);
+                textarea.blur();
+            }});
+        </script>
     </body>
     </html>
     "#,
