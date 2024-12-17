@@ -1,6 +1,4 @@
 use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, Parser, Tag, TagEnd, html};
-use std::fs;
-use warp::Filter;
 
 fn markdown_to_confluence(input: &str) -> String {
     let parser = Parser::new(input);
