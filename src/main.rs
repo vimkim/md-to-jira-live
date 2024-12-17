@@ -44,8 +44,8 @@ fn markdown_to_confluence(input: &str) -> String {
                         output.push_str(&format!("[Attrs: {:?}] ", attrs));
                     }
                 }
-                Tag::Emphasis => output.push('_'),
-                Tag::Strong => output.push('*'),
+                Tag::Emphasis => output.push_str(" _"),
+                Tag::Strong => output.push_str(" *"),
                 Tag::List(Some(_)) => {
                     // Ordered list: push `true` to stack
                     list_stack.push(true);
@@ -82,8 +82,8 @@ fn markdown_to_confluence(input: &str) -> String {
             },
             Event::End(tag) => match tag {
                 TagEnd::Heading(_) => output.push('\n'),
-                TagEnd::Emphasis => output.push('_'),
-                TagEnd::Strong => output.push('*'),
+                TagEnd::Emphasis => output.push_str("_ "),
+                TagEnd::Strong => output.push_str("* "),
                 TagEnd::List(_) => {
                     // Pop the stack to restore the previous list type
                     list_stack.pop();
@@ -111,7 +111,7 @@ fn markdown_to_confluence(input: &str) -> String {
             }
             Event::Code(text) => {
                 // Inline code
-                output.push_str(&format!(" {{{{{}}}}} ", text));
+                output.push_str(&format!("' {{{{{}}}}} '", text));
             }
             Event::Html(html) => {
                 // Add raw HTML content
