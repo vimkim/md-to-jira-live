@@ -149,6 +149,7 @@ async fn main() {
                 .short('m')
                 .long("markdown")
                 .value_name("MARKDOWN")
+                .required(true)
                 .help("Path to the Markdown file to render"),
         )
         .arg(
