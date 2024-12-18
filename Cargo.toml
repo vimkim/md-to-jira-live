@@ -7,3 +7,4 @@ edition = "2024"
 warp = "0.3.7"
 tokio = { version = "1.42.0", features = ["full"] }
 pulldown-cmark = "0.12.2"
+clap = "4.5.23"
