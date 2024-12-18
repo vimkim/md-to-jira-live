@@ -1,3 +1,5 @@
+use std::net::Ipv4Addr;
+
 use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, Parser, Tag, TagEnd, html};
 
 fn markdown_to_confluence(input: &str) -> String {
@@ -133,31 +135,89 @@ fn markdown_to_html(markdown: &str) -> String {
 
 #[tokio::main]
 async fn main() {
+    use clap::{Arg, Command};
     use std::fs;
     use warp::Filter;
 
-    let markdown_route = warp::path::end().and(warp::get()).map(|| {
-        // Read Markdown and HTML
-        let markdown_content = fs::read_to_string("main.md").unwrap_or_else(|_| {
-            "# Error\nCould not read `main.md`. Make sure the file exists.".to_string()
-        });
-        let rendered_html = markdown_to_html(&markdown_content);
-        let confluence_content = markdown_to_confluence(&markdown_content);
+    // Parse command-line arguments
+    let matches = Command::new("Markdown Server")
+        .version("1.0")
+        .author("Your Name <you@example.com>")
+        .about("Serves rendered Markdown and Confluence content over HTTP")
+        .arg(
+            Arg::new("markdown")
+                .short('m')
+                .long("markdown")
+                .value_name("MARKDOWN")
+                .help("Path to the Markdown file to render"),
+        )
+        .arg(
+            Arg::new("html")
+                .short('t')
+                .long("template")
+                .value_name("HTML_TEMPLATE")
+                .default_value("index.html")
+                .help("Path to the HTML template file"),
+        )
+        .arg(
+            Arg::new("address")
+                .short('a')
+                .long("address")
+                .value_name("ADDRESS")
+                .default_value("127.0.0.1")
+                .help("Server address to bind to"),
+        )
+        .arg(
+            Arg::new("port")
+                .short('p')
+                .long("port")
+                .value_name("PORT")
+                .default_value("3030")
+                .help("Port to run the server on"),
+        )
+        .get_matches();
 
-        // Read the external HTML file
-        let mut html_template = fs::read_to_string("index.html")
-            .unwrap_or_else(|_| "Error: Could not read index.html".to_string());
+    // Retrieve and define variables
+    // Parse command-line arguments
+    let address: Ipv4Addr = matches
+        .get_one::<String>("address")
+        .unwrap()
+        .parse()
+        .unwrap_or_else(|_| "127.0.0.1".parse().unwrap());
+    let port: u16 = matches.get_one::<String>("port").unwrap().parse().unwrap();
 
-        // Replace placeholders with dynamic content
-        html_template = html_template
-            .replace("{{ rendered_html }}", &rendered_html)
-            .replace("{{ confluence_content }}", &confluence_content);
+    use std::sync::Arc;
 
-        warp::reply::html(html_template)
+    // Parse command-line arguments
+    let markdown_path = Arc::new(matches.get_one::<String>("markdown").unwrap().clone());
+    let html_template_path = Arc::new(matches.get_one::<String>("html").unwrap().clone());
+
+    // Define the route
+    let markdown_route = warp::path::end().and(warp::get()).map({
+        let markdown_path = Arc::clone(&markdown_path);
+        let html_template_path = Arc::clone(&html_template_path);
+        move || {
+            // Read Markdown and HTML
+            let markdown_content = fs::read_to_string(&*markdown_path).unwrap_or_else(|_| {
+                "# Error\nCould not read the specified Markdown file.".to_string()
+            });
+            let rendered_html = markdown_to_html(&markdown_content);
+            let confluence_content = markdown_to_confluence(&markdown_content);
+
+            // Read the external HTML file
+            let mut html_template = fs::read_to_string(&*html_template_path).unwrap_or_else(|_| {
+                "Error: Could not read the specified HTML template file.".to_string()
+            });
+
+            // Replace placeholders with dynamic content
+            html_template = html_template
+                .replace("{{ rendered_html }}", &rendered_html)
+                .replace("{{ confluence_content }}", &confluence_content);
+
+            warp::reply::html(html_template)
+        }
     });
 
     // Start the server
-    warp::serve(markdown_route)
-        .run(([127, 0, 0, 1], 3030))
-        .await;
+    warp::serve(markdown_route).run((address, port)).await;
 }
