@@ -5,57 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Markdown to CUBRID Jira Confluence Wiki Style</title>
     <style>
-      /* Apply box-sizing to ensure padding and borders don't affect sizing */
-
-      .wiki-content {
-        flex: 1;
-        min-width: 48%;
-        height: 75vh; /* Match the height of the container */
-        background-color: #fff;
-        border: 1px solid #ced4da;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        overflow: hidden; /* Prevent nested scrollbars */
-        display: flex;
-        flex-direction: column; /* Ensure proper alignment */
-      }
-
-      textarea {
-        width: 100%;
-        height: 100%;
-        border: none; /* Remove extra border */
-        font-family: "Courier New", Courier, monospace;
-        font-size: 14px;
-        resize: none; /* Prevent resizing */
-        background-color: #fff;
-        color: #495057;
-        overflow: auto; /* Enable scrollbar only for the textarea */
-      }
-
-      pre {
-        background-color: #f5f7fa; /* Soft light grey for high readability */
-        color: #2a2a2a; /* Dark text for excellent contrast */
-        padding: 15px;
-        border-radius: 6px; /* Slightly rounded corners */
-        overflow-x: auto; /* Enable horizontal scrolling for long code */
-        font-family: "Fira Code", "Courier New", Courier, monospace; /* Clean monospaced font */
-        font-size: 14px; /* Comfortable text size */
-        line-height: 1.6; /* Increase line spacing for readability */
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-        border: 1px solid #e1e4e8; /* Light border for structure */
-      }
-
-      code {
-        background-color: #f5f7fa; /* Slightly darker than pre background */
-        color: #2a2a2a; /* Elegant red for inline code text */
-        font-family: "Fira Code", "Courier New", Courier, monospace;
-        padding: 2px 5px; /* Tight padding for inline code */
-        border-radius: 4px; /* Rounded corners for inline code */
-        font-size: 90%; /* Slightly smaller text for inline code */
-      }
-      textarea:focus {
-        outline: none;
-      }
+      /* Default Theme Styles */
       body {
         font-family: Arial, sans-serif;
         line-height: 1.6;
@@ -91,6 +41,18 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         overflow: auto;
       }
+      .wiki-content {
+        flex: 1;
+        min-width: 48%;
+        height: 75vh;
+        background-color: #fff;
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
       textarea {
         width: 100%;
         height: 100%;
@@ -100,6 +62,7 @@
         resize: none;
         background-color: #fff;
         color: #495057;
+        overflow: auto;
       }
       textarea:focus {
         outline: none;
@@ -120,12 +83,33 @@
       button:hover {
         background-color: #0056b3;
       }
+
+      /* Catppuccin Mocha Theme */
+      .catppuccin-mocha {
+        background-color: #1e1e2e;
+        color: #cdd6f4;
+      }
+      .catppuccin-mocha .rendered-html,
+      .catppuccin-mocha .wiki-content textarea {
+        background-color: #181825;
+        color: #cdd6f4;
+        border-color: #45475a;
+      }
+      .catppuccin-mocha button {
+        background-color: #89b4fa;
+      }
+      .catppuccin-mocha button:hover {
+        background-color: #74c7ec;
+      }
     </style>
   </head>
   <body>
     <div class="container">
       <h1>Markdown to CUBRID Confluence Wiki Style</h1>
-      <button id="copy-button">Copy To Clipboard!</button>
+      <div style="display: flex; gap: 10px; justify-content: center">
+        <button id="copy-button">Copy To Clipboard!</button>
+        <button id="theme-button">Change to Catppuccin Mocha</button>
+      </div>
       <div class="content">
         <!-- Placeholder for rendered HTML -->
         <div class="rendered-html">{{ rendered_html }}</div>
@@ -143,11 +127,10 @@
         .addEventListener("click", function () {
           const textarea = document.getElementById("confluence-content");
           textarea.select();
-          textarea.setSelectionRange(0, textarea.value.length); // Ensure selection for mobile devices
+          textarea.setSelectionRange(0, textarea.value.length);
 
           try {
             if (document.execCommand("copy")) {
-              // Show a non-intrusive notification
               const notification = document.createElement("div");
               notification.textContent = "Copied to clipboard!";
               notification.style.position = "fixed";
@@ -162,7 +145,6 @@
               notification.style.zIndex = "1000";
               document.body.appendChild(notification);
 
-              // Fade out the notification
               setTimeout(() => {
                 notification.style.transition = "opacity 0.5s";
                 notification.style.opacity = "0";
@@ -175,9 +157,14 @@
             console.error("Copy to clipboard failed", err);
           }
 
-          // Deselect the text
           textarea.setSelectionRange(0, 0);
           textarea.blur();
+        });
+
+      document
+        .getElementById("theme-button")
+        .addEventListener("click", function () {
+          document.body.classList.toggle("catppuccin-mocha");
         });
     </script>
   </body>
